@@ -92,7 +92,18 @@
   .star{color:#f0b429}
   .wiznav{display:flex;gap:10px;margin-top:14px}
   .wiznav button{flex:1;padding:15px 8px;font-size:16px;font-weight:700}
-  /* 欢迎页（简约） */
+  /* 欢迎页：上半区主视觉 */
+  .hero{position:relative;overflow:hidden;text-align:center;border-radius:16px;padding:38px 16px 26px;margin:10px 0;background:linear-gradient(180deg,#182130,#12161d);border:1px solid #2b3648}
+  .hero:before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% -10%,rgba(75,131,232,.28),transparent 65%),radial-gradient(ellipse at 18% 112%,rgba(229,72,77,.15),transparent 60%)}
+  .hero-court{position:absolute;left:14px;right:14px;top:16px;bottom:16px;border:1.5px dashed #2f3b52;border-radius:10px}
+  .hero-court:before{content:"";position:absolute;left:0;right:0;top:26%;border-top:1.5px dashed #2f3b52}
+  .hero-court:after{content:"";position:absolute;top:-2px;left:10%;right:10%;height:3px;border-radius:2px;background:repeating-linear-gradient(90deg,#8b949e 0 8px,transparent 8px 14px);opacity:.7}
+  .hero .ball,.hero h1,.hero .hero-sub{position:relative;z-index:1}
+  .hero .ball{font-size:46px;filter:drop-shadow(0 0 16px rgba(229,72,77,.45));animation:floaty 3.4s ease-in-out infinite}
+  .hero h1{margin:10px 0 4px;font-size:27px;background:linear-gradient(92deg,#ff9a9c 10%,#8fc1ff 90%);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero .hero-sub{font-size:12.5px;color:var(--dim);letter-spacing:.5px}
+  @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+  /* 欢迎页：下半区简约设计 */
   .card.intro{border-left:3px solid #3fb950}
   .divider{display:flex;align-items:center;gap:12px;margin:24px 6px 16px}
   .divider span{flex:1;height:1px;background:#2b3444}
@@ -382,10 +393,8 @@ function footerHTML(){
   return '<div class="card" style="font-size:12px;color:var(--dim);line-height:1.9">'+footerText()+'</div>';
 }
 function renderWelcome(){
-  return '<div style="text-align:center;padding:48px 16px 30px">'+
-    '<div style="font-size:34px;line-height:1">🏐</div>'+
-    '<div style="font-size:24px;font-weight:800;margin-top:12px;letter-spacing:1px">排球副裁助手</div>'+
-    '<div class="muted" style="margin-top:7px;font-size:12.5px;letter-spacing:.5px">校园「小转」赛制 · 记录交给它，眼睛留给场上</div></div>'+
+  return '<div class="hero"><div class="hero-court"></div><div class="ball">🏐</div>'+
+    '<h1>排球副裁助手</h1><div class="hero-sub">校园「小转」赛制 · 记录交给它，眼睛留给场上</div></div>'+
     '<div class="card intro"><b>为什么做这个工具</b>'+
     '<div style="font-size:13px;line-height:1.9;margin-top:6px">排球比赛的副裁，常常要一个人同时盯住两边的发球轮次、前后排站位和比分，还要留意二传是否转到后排、后排队员有没有进攻或拦网违例。本工具旨在解放副裁的大脑：每球点一下得分按钮，轮次、前后排对调和发球人自动更新，让裁判能把更多注意力留给场上，让比赛更公平公正。</div></div>'+
     '<div class="divider"><span></span><i>🏐</i><span></span></div>'+
