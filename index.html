@@ -148,7 +148,7 @@ function freshSU(){
     lineups:[{slots:clone(slots),setters:[]},{slots:clone(slots),setters:[]}],
     preset:['edge','edge'],
     first:0,
-    step:1
+    step:0
   };
 }
 function presetSlot(p){return p==='edge'?'2':(p==='mid'?'3':null);}
@@ -319,6 +319,7 @@ function render(){
   else if(S.phase==='matchEnd')overlay=renderMatchEnd();
   else if(modal==='menu')overlay=renderMenu();
   else if(modal==='rules')overlay=renderRules();
+  else if(modal==='help')overlay=overlay(helpHTML()+'<button style="width:100%;margin-top:12px" onclick="closeOverlay()">关闭</button>',true);
   app.innerHTML=renderPlaying()+overlay;
 }
 function overlay(inner,dismissible){
@@ -364,8 +365,28 @@ function lineupSummary(t){
   return '<div class="card"><b style="color:'+(t?'var(--blue)':'var(--red)')+'">'+esc(SU.teams[t].name)+'</b>'+
     '<div class="netline"></div><div class="court">'+cells+'</div></div>';
 }
+function helpHTML(){
+  return '<div class="card" style="text-align:center;padding:22px 14px">'+
+    '<div style="font-size:30px">🏐</div>'+
+    '<b style="font-size:21px">排球副裁助手</b>'+
+    '<div class="muted" style="margin-top:4px">校园「小转」赛制 · 记录交给它，眼睛留给场上</div></div>'+
+    '<div class="card"><b>为什么做这个工具</b>'+
+    '<div style="font-size:13px;line-height:1.9;margin-top:6px">做学校排球比赛的副裁判，常常要一个人同时盯住两边的发球轮次、前后排站位和比分，还要留意二传是否转到后排、后排队员有没有进攻或拦网违例——全靠脑子记，很容易看不过来，也容易漏。这个小工具把"记"的活儿接管下来：每球点一下得分按钮，轮次、前后排对调和发球人自动更新，让你把注意力留给场上。</div></div>'+
+    '<div class="card"><b>使用注意事项</b>'+
+    '<div style="font-size:13px;line-height:2;margin-top:6px">'+
+    '1. <b>辅助不代判</b>：本工具只做记录与提示，判罚始终以裁判的观察和规则为准。<br>'+
+    '2. <b>规则按「小转」约定实现</b>：每列固定（4↔5、3↔6、2↔1），发球后与本列后排对调；每局只有先发球的队第一球从 5 号位开始，之后按 2→3→4 号位循环。若与你们赛场的约定有出入，欢迎反馈调整。<br>'+
+    '3. <b>数据保存在本机浏览器</b>：一场比赛请固定用同一台设备，不要中途清理浏览器缓存或换无痕模式。<br>'+
+    '4. <b>误触可撤销</b>：点错比分随时按「撤销」，可连续回退多球。<br>'+
+    '5. <b>局间重新报位</b>：每局开始时在弹窗里输入该局双方阵容。<br>'+
+    '6. <b>保持电量与常亮</b>：建议调长手机自动锁屏时间，重要比赛可边充电边用。</div></div>';
+}
 function renderSetup(){
   const r=SU.rules;
+  if(SU.step===0){
+    return helpHTML()+
+      '<div class="wiznav"><button style="background:linear-gradient(180deg,#2ea043,#1a7f37);border-color:#1a7f37" onclick="SU.step=1;render()">开始赛前设置 →</button></div>';
+  }
   const stepTitles=['赛制','红队阵容','蓝队阵容','开赛确认'];
   const dots=stepTitles.map(function(s,i){
     return '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;margin:0 4px;background:'+(i<SU.step?'#3fb950':'#30363d')+'"></span>';
@@ -533,10 +554,12 @@ function renderMatchEnd(){
 function renderMenu(){
   return overlay('<h3>菜单</h3>'+
     '<div class="grid2">'+
-    '<button onclick="modal=\'rules\';render()">规则速记</button>'+
-    '<button onclick="resetMatch()">重置当前比赛</button></div>'+
-    '<div class="muted" style="margin-top:10px">比分与状态自动保存在本机，关闭页面后可继续。<br>意见反馈：对调时机、换人规则等可随时调整。</div>'+
-    '<button style="width:100%;margin-top:10px" onclick="closeOverlay()">关闭</button>',true);
+    '<button onclick="modal=\'help\';render()">使用说明</button>'+
+    '<button onclick="modal=\'rules\';render()">规则速记</button></div>'+
+    '<div class="grid2" style="margin-top:8px">'+
+    '<button onclick="resetMatch()">重置比赛</button>'+
+    '<button onclick="closeOverlay()">关闭</button></div>'+
+    '<div class="muted" style="margin-top:10px">比分与状态自动保存在本机，关闭页面后可继续。</div>',true);
 }
 function renderRules(){
   return overlay('<h3>小转规则速记（本应用采用的模型）</h3><div style="font-size:13px;line-height:1.9">'+
