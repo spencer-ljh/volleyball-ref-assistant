@@ -92,6 +92,22 @@
   .star{color:#f0b429}
   .wiznav{display:flex;gap:10px;margin-top:14px}
   .wiznav button{flex:1;padding:15px 8px;font-size:16px;font-weight:700}
+  /* 欢迎页 */
+  .hero{position:relative;overflow:hidden;text-align:center;border-radius:16px;padding:38px 16px 26px;margin:10px 0;background:linear-gradient(180deg,#182130,#12161d);border:1px solid #2b3648}
+  .hero:before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% -10%,rgba(75,131,232,.28),transparent 65%),radial-gradient(ellipse at 18% 112%,rgba(229,72,77,.15),transparent 60%)}
+  .hero-court{position:absolute;left:14px;right:14px;top:16px;bottom:16px;border:1.5px dashed #2f3b52;border-radius:10px}
+  .hero-court:before{content:"";position:absolute;left:0;right:0;top:26%;border-top:1.5px dashed #2f3b52}
+  .hero-court:after{content:"";position:absolute;top:-2px;left:10%;right:10%;height:3px;border-radius:2px;background:repeating-linear-gradient(90deg,#8b949e 0 8px,transparent 8px 14px);opacity:.7}
+  .hero .ball,.hero h1,.hero .hero-sub{position:relative;z-index:1}
+  .hero .ball{font-size:46px;filter:drop-shadow(0 0 16px rgba(229,72,77,.45));animation:floaty 3.4s ease-in-out infinite}
+  .hero h1{margin:10px 0 4px;font-size:27px;background:linear-gradient(92deg,#ff9a9c 10%,#8fc1ff 90%);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero .hero-sub{font-size:12.5px;color:var(--dim);letter-spacing:.5px}
+  @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+  .chips{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+  .feat{display:flex;align-items:center;gap:9px;background:#141a24;border:1px solid #263043;border-radius:12px;padding:10px 12px;font-size:13px}
+  .feat .ic{font-size:19px;line-height:1}
+  .card.intro{border-left:3px solid #3fb950}
+  .cta{display:block;width:100%;padding:16px;font-size:17px;font-weight:800;color:#fff;border:none;border-radius:14px;background:linear-gradient(180deg,#2ea043,#1a7f37);box-shadow:0 8px 22px rgba(46,160,67,.35);margin-top:14px}
   .toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:#2b3a8f;
     padding:8px 16px;border-radius:10px;font-size:13px;z-index:99;box-shadow:0 4px 16px #0008}
 </style>
@@ -365,6 +381,25 @@ function lineupSummary(t){
   return '<div class="card"><b style="color:'+(t?'var(--blue)':'var(--red)')+'">'+esc(SU.teams[t].name)+'</b>'+
     '<div class="netline"></div><div class="court">'+cells+'</div></div>';
 }
+function footerHTML(){
+  return '<div class="card" style="font-size:12px;color:var(--dim);line-height:1.9">'+
+    '本工具由南开大学激扬排球社开发，仅用于校内排球赛事辅助。<br>'+
+    '免费开源，源码：<a style="color:#79c0ff;word-break:break-all" href="https://github.com/spencer-ljh/volleyball-ref-assistant" target="_blank" rel="noopener">github.com/spencer-ljh/volleyball-ref-assistant</a><br>'+
+    '© 2026 spencer-ljh · 反馈与建议欢迎+vx：ljhhh_12138</div>';
+}
+function renderWelcome(){
+  return '<div class="hero"><div class="hero-court"></div><div class="ball">🏐</div>'+
+    '<h1>排球副裁助手</h1><div class="hero-sub">校园「小转」赛制 · 记录交给它，眼睛留给场上</div></div>'+
+    '<div class="chips">'+
+    '<div class="feat"><span class="ic">🔄</span><span>轮次与前后排对调自动更新</span></div>'+
+    '<div class="feat"><span class="ic">🟡</span><span>二传转后排即时预警</span></div>'+
+    '<div class="feat"><span class="ic">↩️</span><span>误触可连续撤销</span></div>'+
+    '<div class="feat"><span class="ic">📱</span><span>手机竖屏单手速记</span></div></div>'+
+    '<div class="card intro"><b>为什么做这个工具</b>'+
+    '<div style="font-size:13px;line-height:1.9;margin-top:6px">排球比赛的副裁，常常要一个人同时盯住两边的发球轮次、前后排站位和比分，还要留意二传是否转到后排、后排队员有没有进攻或拦网违例。本工具旨在解放副裁的大脑：每球点一下得分按钮，轮次、前后排对调和发球人自动更新，让裁判能把更多注意力留给场上，让比赛更公平公正。</div></div>'+
+    '<button class="cta" onclick="SU.step=1;render()">开始赛前设置 →</button>'+
+    footerHTML();
+}
 function helpHTML(){
   return '<div class="card" style="text-align:center;padding:22px 14px">'+
     '<div style="font-size:30px">🏐</div>'+
@@ -380,16 +415,12 @@ function helpHTML(){
     '4. <b>误触可撤销</b>：点错比分随时按「撤销」，可连续回退多球。<br>'+
     '5. <b>局间重新报位</b>：每局开始时在弹窗里输入该局双方阵容。<br>'+
     '6. <b>保持电量与常亮</b>：建议调长手机自动锁屏时间，重要比赛可边充电边用。</div></div>'+
-    '<div class="card" style="font-size:12px;color:var(--dim);line-height:1.9">'+
-    '本工具由南开大学激扬排球社开发，仅用于校内排球赛事辅助。<br>'+
-    '免费开源，源码：<a style="color:#79c0ff;word-break:break-all" href="https://github.com/spencer-ljh/volleyball-ref-assistant" target="_blank" rel="noopener">github.com/spencer-ljh/volleyball-ref-assistant</a><br>'+
-    '© 2026 spencer-ljh · 反馈与建议欢迎+vx：ljhhh_12138</div>';
+    footerHTML();
 }
 function renderSetup(){
   const r=SU.rules;
   if(SU.step===0){
-    return helpHTML()+
-      '<div class="wiznav"><button style="background:linear-gradient(180deg,#2ea043,#1a7f37);border-color:#1a7f37" onclick="SU.step=1;render()">开始赛前设置 →</button></div>';
+    return renderWelcome();
   }
   const stepTitles=['赛制','红队阵容','蓝队阵容','开赛确认'];
   const dots=stepTitles.map(function(s,i){
