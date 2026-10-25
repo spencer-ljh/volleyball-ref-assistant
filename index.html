@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d1117">
+<title>排球副裁助手（小转）</title>
+<style>
+  :root{
+    --bg:#0d1117; --card:#161b22; --line:#30363d; --txt:#e6edf3; --dim:#8b949e;
+    --red:#e5484d; --blue:#4b83e8; --ok:#3fb950; --warn:#d29922;
+    --front:rgba(229,168,62,.13); --frontline:rgba(229,168,62,.4);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--txt);
+    font:16px/1.55 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+    touch-action:manipulation}
+  #app{max-width:540px;margin:0 auto;padding:10px 10px 150px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 0}
+  button{font:inherit;color:var(--txt);background:#21262d;border:1px solid var(--line);
+    border-radius:10px;padding:8px 12px;cursor:pointer;touch-action:manipulation;user-select:none}
+  button:active{transform:scale(.97)}
+  input,select{font:inherit;background:#0d1117;color:var(--txt);border:1px solid var(--line);
+    border-radius:8px;padding:6px 8px;width:100%}
+  .muted{color:var(--dim);font-size:12px}
+  /* 记分牌 */
+  .score-row{display:flex;align-items:center;justify-content:space-between;gap:6px}
+  .tname{font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .dots{font-size:12px;letter-spacing:2px;color:#e3b341}
+  .score-mid{text-align:center}
+  .score-num{font-size:44px;font-weight:800;line-height:1.05}
+  .score-sub{font-size:12px;color:var(--dim)}
+  .serve-line{display:flex;align-items:center;justify-content:center;margin-top:8px;
+    font-size:15px;font-weight:700;padding:7px;border-radius:8px;background:#10151c}
+  .badge{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;vertical-align:1px}
+  .badge.deuce{background:#1f6feb33;color:#79c0ff}
+  .badge.setpt{background:#d2992233;color:#e3b341}
+  /* 二传状态横幅 */
+  .banner{margin:10px 0;border-radius:12px;padding:10px 12px;border:1px solid var(--line);font-size:13px}
+  .banner .big{font-size:14px;font-weight:700}
+  .banner.ok{background:rgba(63,185,80,.08);border-color:rgba(63,185,80,.35)}
+  .banner.warn{background:rgba(210,153,34,.08);border-color:rgba(210,153,34,.5)}
+  .banner .warn-line{color:#e3b341;font-size:12px;margin-top:2px}
+  /* 场地 */
+  .court-title{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:8px;gap:8px}
+  .court-title .muted{text-align:right}
+  .netline{height:3px;border-radius:2px;margin-bottom:6px;
+    background:repeating-linear-gradient(90deg,#8b949e 0 8px,transparent 8px 14px)}
+  .court{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .cell{position:relative;border-radius:10px;min-height:66px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:1px;padding:4px 2px}
+  .cell.front{background:var(--front);border:1px solid var(--frontline)}
+  .cell.back{background:#1c2128;border:1px solid var(--line)}
+  .cell .pos{position:absolute;top:3px;left:6px;font-size:10px;color:var(--dim)}
+  .cell .num{font-size:21px;font-weight:800}
+  .cell .tags{font-size:10px;display:flex;gap:4px;flex-wrap:wrap;justify-content:center;min-height:13px}
+  .tag{padding:0 5px;border-radius:6px;font-weight:700}
+  .tag.setter{background:#f0b42922;color:#f0b429}
+  .tag.serve{background:#3fb95026;color:#56d364;animation:pulse 1.4s infinite}
+  .col{display:flex;flex-direction:column;gap:6px}
+  .col.hl-front{outline:2px dashed #3fb950;outline-offset:2px;border-radius:12px}
+  .col.hl-back{outline:2px dashed #e3b341;outline-offset:2px;border-radius:12px}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+  .legend{font-size:11px;color:var(--dim);margin:6px 2px 0;line-height:1.8}
+  /* 记录 */
+  .log{max-height:170px;overflow:auto;font-size:12px;color:#adb6c0}
+  .log div{padding:2px 0;border-bottom:1px dashed #21262d}
+  /* 工具行 */
+  .ctl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+  .ctl button{font-size:13px;padding:10px 4px}
+  /* 底部大按钮 */
+  .sticky{position:fixed;left:0;right:0;bottom:0;display:flex;gap:10px;
+    padding:10px max(10px,calc(50vw - 270px)) calc(12px + env(safe-area-inset-bottom));
+    background:linear-gradient(to top,#0d1117 75%,rgba(13,17,23,.85))}
+  .btn-score{flex:1;font-size:19px;font-weight:800;padding:18px 6px;border-radius:16px;color:#fff;border:none}
+  .btn-score.red{background:linear-gradient(180deg,#f05a5f,#c53a3f)}
+  .btn-score.blue{background:linear-gradient(180deg,#5a95f0,#3a6fd0)}
+  .btn-score .sub{display:block;font-size:12px;font-weight:600;opacity:.85}
+  /* 弹窗 */
+  .overlay{position:fixed;inset:0;background:rgba(1,4,9,.74);display:flex;align-items:center;
+    justify-content:center;padding:16px;z-index:50}
+  .modal{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;
+    width:100%;max-width:430px;max-height:86vh;overflow:auto}
+  .modal h3{margin:0 0 10px;font-size:16px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .seg{display:flex;gap:6px}
+  .seg button{flex:1;padding:8px 4px;font-size:13px}
+  .seg button.on{background:#2650a8;border-color:#3d6fd8}
+  .slotbtn{padding:10px 4px;font-size:13px;font-weight:600}
+  .slotbtn.sel{background:#2650a8;border-color:#3d6fd8}
+  .star{color:#f0b429}
+  .wiznav{display:flex;gap:10px;margin-top:14px}
+  .wiznav button{flex:1;padding:15px 8px;font-size:16px;font-weight:700}
+  .toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:#2b3a8f;
+    padding:8px 16px;border-radius:10px;font-size:13px;z-index:99;box-shadow:0 4px 16px #0008}
+</style>
+</head>
+<body><div id="app"></div>
+<script>
+'use strict';
+/* ================= 常量与状态 ================= */
+const LS_KEY='vbRefAssist_v1';
+const PARTNER={'2':'1','3':'6','4':'5'};   // 发球位 -> 同列后排位（2↔1、3↔6、4↔5）
+const NEXTPOS={'2':'3','3':'4','4':'2'};   // 发球位循环顺序 2→3→4→2…
+const GRID=[['4','3','2'],['5','6','1']];  // 上排=前排（靠网），下排=后排；同一竖列前后对调
+const FRONTPOS=['2','3','4'];
+const ALLPOS=['1','2','3','4','5','6'];
+
+let S=null;        // 比赛状态（进行中/已保存）
+let SU=null;       // 赛前设置
+let SE=null;       // 局间阵容编辑
+let subSel=null;   // 换人弹窗 {t,pos,star}
+let modal=null;    // 'menu' | 'rules'
+
+function clone(o){return JSON.parse(JSON.stringify(o));}
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function teamName(t){return S?S.teams[t].name:String(t);}
+function toast(msg){const d=document.createElement('div');d.className='toast';d.textContent=msg;document.body.appendChild(d);setTimeout(()=>d.remove(),2200);}
+function vibrate(){try{navigator.vibrate&&navigator.vibrate(12);}catch(e){}}
+function isDeciding(){return S.rules.bestOf>1&&S.setNo===S.rules.bestOf;}
+function neededWins(){return Math.ceil(S.rules.bestOf/2);}
+function targetScore(){return isDeciding()?S.rules.deciding:S.rules.points;}
+function log(text){S.matchLog.push({set:S.setNo,sc:[S.cur.score[0],S.cur.score[1]],text:text});}
+
+/* ================= 撤销与保存 ================= */
+function snapshot(){
+  const rest=clone(S);rest.undoStack=[];
+  S.undoStack.push(rest);
+  if(S.undoStack.length>80)S.undoStack.shift();
+}
+function undo(){
+  if(!S||!S.undoStack||!S.undoStack.length){toast('没有可撤销的操作');return;}
+  const st=S.undoStack.pop();
+  st.undoStack=S.undoStack;
+  S=st;SE=null;subSel=null;modal=null;
+  save();render();toast('已撤销');
+}
+function save(){try{const rest=clone(S);rest.undoStack=[];localStorage.setItem(LS_KEY,JSON.stringify(rest));}catch(e){}}
+
+/* ================= 赛前设置 ================= */
+function freshSU(){
+  const slots={'1':'1','2':'2','3':'3','4':'4','5':'5','6':'6'};
+  return {
+    rules:{points:25,winBy:2,bestOf:3,deciding:15},
+    teams:[{name:'红队'},{name:'蓝队'}],
+    lineups:[{slots:clone(slots),setters:[]},{slots:clone(slots),setters:[]}],
+    preset:['edge','edge'],
+    first:0,
+    step:1
+  };
+}
+function presetSlot(p){return p==='edge'?'2':(p==='mid'?'3':null);}
+function isSetterMarked(kind,t,pos){
+  const O=kind==='SU'?SU:SE;const L=O.lineups[t];
+  const ps=presetSlot(O.preset[t]);
+  if(ps)return pos===ps;
+  return L.setters.map(String).indexOf(String(L.slots[pos]))>=0;
+}
+function edSlot(kind,t,pos,v){(kind==='SU'?SU:SE).lineups[t].slots[pos]=v;}
+function edPreset(kind,t,p){
+  const O=kind==='SU'?SU:SE;O.preset[t]=p;
+  if(p!=='custom')O.lineups[t].setters=[];
+  render();
+}
+function edStar(kind,t,pos){
+  const O=kind==='SU'?SU:SE;O.preset[t]='custom';
+  const L=O.lineups[t];const n=String(L.slots[pos]);
+  const i=L.setters.map(String).indexOf(n);
+  if(i>=0)L.setters.splice(i,1);else L.setters.push(n);
+  render();
+}
+function startMatch(){
+  for(let t=0;t<2;t++){
+    const L=SU.lineups[t];
+    for(const p of ALLPOS){
+      if(!String(L.slots[p]).trim()){toast((t?'蓝队':'红队')+' '+p+'号位还没填号码');return;}
+    }
+    const nums=ALLPOS.map(p=>String(L.slots[p]).trim());
+    if(new Set(nums).size<6)toast('注意：'+(t?'蓝队':'红队')+'存在重复号码');
+    const ps=presetSlot(SU.preset[t]);
+    if(ps)L.setters=[String(L.slots[ps]).trim()];
+  }
+  S={phase:'playing',rules:clone(SU.rules),teams:clone(SU.teams),
+     initLineup:clone(SU.lineups),lineups:clone(SU.lineups),
+     ptr:(SU.first===0?['5','2']:['2','5']),setNo:1,setsWon:[0,0],history:[],matchLog:[],undoStack:[],
+     lastFirst:SU.first,
+     cur:{score:[0,0],serving:-1,serverNum:'',serverPos:'',timeouts:[0,0],subs:[0,0],switched:false}};
+  advanceServe(SU.first);
+  log('第1局开始，'+teamName(SU.first)+'先发球');
+  save();render();
+}
+
+/* ================= 核心：小转发球与换列 =================
+   每局只有先发球的队：第1球由5号位队员发球（已是后排，不对调）；
+   其余情形一律按 2→3→4→2… 号位循环，由当时该位置的人发球（后发球的队首球即2号位）；
+   发球后立即与本列后排（1/6/5号位）对调、变为后排。
+   发球队员顺序：先发球队 5→2→3→4→1→6；后发球队 2→3→4→1→6→5。 */
+function advanceServe(t){
+  const L=S.lineups[t];
+  let pos,num,note;
+  if(S.ptr[t]==='5'){
+    pos='5';num=String(L.slots['5']);S.ptr[t]='2';
+    note='5号位发球（本身已是后排，不对调）';
+  }else{
+    pos=S.ptr[t];num=String(L.slots[pos]);
+    const bk=PARTNER[pos];
+    const backOld=String(L.slots[bk]);
+    L.slots[pos]=backOld;L.slots[bk]=num;
+    S.ptr[t]=NEXTPOS[pos];
+    note=pos+'号位发球，发球后与'+bk+'号位对调转后排';
+  }
+  S.cur.serving=t;S.cur.serverNum=num;S.cur.serverPos=pos;
+  log('发球权→'+teamName(t)+'：'+num+' 发球（'+note+'）');
+}
+
+function score(t){
+  if(!S||S.phase!=='playing')return;
+  vibrate();snapshot();
+  S.cur.score[t]++;
+  if(S.cur.serving===t){
+    log(teamName(t)+' 得分，'+S.cur.serverNum+' 继续发球');
+  }else{
+    advanceServe(t);
+  }
+  if(isDeciding()&&!S.cur.switched&&(S.cur.score[0]>=8||S.cur.score[1]>=8)){
+    S.cur.switched=true;
+    log('⚠ 决胜局到8分——双方交换场区（本面板上下顺序不变，注意实际场地已换）');
+    toast('决胜局8分：交换场区');
+  }
+  if(S.cur.score[t]>=targetScore()&&S.cur.score[t]-S.cur.score[1-t]>=S.rules.winBy)endSet(t);
+  save();render();
+}
+function endSet(t){
+  S.setsWon[t]++;
+  S.history.push({set:S.setNo,score:[S.cur.score[0],S.cur.score[1]],winner:t});
+  log('第'+S.setNo+'局结束 '+S.cur.score[0]+':'+S.cur.score[1]+'，'+teamName(t)+'胜');
+  S.phase=(S.setsWon[t]>=neededWins())?'matchEnd':'setEnd';
+}
+function guessPreset(t){
+  const L=S.initLineup[t];const st=L.setters&&L.setters[0];
+  if(!st)return 'custom';
+  const pos=ALLPOS.filter(p=>String(L.slots[p])===String(st))[0];
+  return pos==='2'?'edge':pos==='3'?'mid':'custom';
+}
+function startNextSet(){
+  if(SE.first==null){toast('请选择本局先发球方');return;}
+  for(let t=0;t<2;t++){
+    const L=SE.lineups[t];
+    for(const p of ALLPOS){
+      if(!String(L.slots[p]).trim()){toast((t?'蓝队':'红队')+' '+p+'号位还没填号码');return;}
+    }
+    const ps=presetSlot(SE.preset[t]);
+    if(ps)L.setters=[String(L.slots[ps]).trim()];
+  }
+  snapshot();
+  S.lastFirst=SE.first;
+  S.lineups=clone(SE.lineups);S.initLineup=clone(SE.lineups);
+  S.ptr=(S.lastFirst===0?['5','2']:['2','5']);S.setNo++;SE=null;
+  S.cur={score:[0,0],serving:-1,serverNum:'',serverPos:'',timeouts:[0,0],subs:[0,0],switched:false};
+  S.phase='playing';
+  advanceServe(S.lastFirst);
+  log('第'+S.setNo+'局开始，'+teamName(S.lastFirst)+'先发球');
+  save();render();
+}
+
+/* ================= 换人 / 暂停 ================= */
+function openSub(t){
+  if(S.phase!=='playing'){toast('本局已结束');return;}
+  subSel={t:t,pos:null,star:false};render();
+}
+function pickSlot(pos){subSel.pos=pos;render();}
+function confirmSub(){
+  const t=subSel.t,pos=subSel.pos;
+  const num=String($('subNum').value).trim();
+  if(!num){toast('请输入上场队员号码');return;}
+  snapshot();
+  const L=S.lineups[t];const old=String(L.slots[pos]);
+  L.slots[pos]=num;
+  L.setters=L.setters.filter(x=>String(x)!==old&&String(x)!==num);
+  if(subSel.star)L.setters.push(num);
+  S.cur.subs[t]++;subSel=null;
+  log('换人：'+teamName(t)+' '+pos+'号位 '+old+' → '+num+'（本局第'+S.cur.subs[t]+'次）');
+  save();render();toast('已记录换人');
+}
+function timeout(t){
+  if(S.phase!=='playing'){toast('本局已结束');return;}
+  if(S.cur.timeouts[t]>=2){toast('暂停次数已用完（2次）');return;}
+  snapshot();S.cur.timeouts[t]++;
+  log(teamName(t)+' 请求暂停（'+S.cur.timeouts[t]+'/2）');
+  save();render();
+}
+function openMenu(){modal='menu';render();}
+function closeOverlay(){subSel=null;modal=null;render();}
+function newMatch(keep){
+  SU=freshSU();
+  if(keep&&S){
+    SU.teams=clone(S.teams);SU.lineups=clone(S.initLineup);SU.rules=clone(S.rules);
+    SU.preset=[guessPreset(0),guessPreset(1)];
+  }
+  S=null;SE=null;subSel=null;modal=null;
+  try{localStorage.removeItem(LS_KEY);}catch(e){}
+  render();
+}
+function resetMatch(){
+  S=null;SE=null;subSel=null;modal=null;
+  try{localStorage.removeItem(LS_KEY);}catch(e){}
+  SU=freshSU();render();
+}
+
+/* ================= 渲染 ================= */
+function render(){
+  const app=$('app');
+  if(!S){app.innerHTML=renderSetup();return;}
+  let overlay='';
+  if(subSel)overlay=renderSub();
+  else if(S.phase==='setEnd')overlay=renderSetEnd();
+  else if(S.phase==='matchEnd')overlay=renderMatchEnd();
+  else if(modal==='menu')overlay=renderMenu();
+  else if(modal==='rules')overlay=renderRules();
+  app.innerHTML=renderPlaying()+overlay;
+}
+function overlay(inner,dismissible){
+  const click=dismissible?' onclick="if(event.target===this)closeOverlay()"':'';
+  return '<div class="overlay"'+click+'><div class="modal">'+inner+'</div></div>';
+}
+function lineupEditor(kind,t){
+  const O=kind==='SU'?SU:SE;const L=O.lineups[t];
+  const cells=GRID.map(function(row){return row.map(function(pos){
+    const marked=isSetterMarked(kind,t,pos);
+    return '<div class="cell '+(FRONTPOS.indexOf(pos)>=0?'front':'back')+'" style="min-height:64px">'+
+      '<span class="pos">'+pos+'号</span>'+
+      '<input inputmode="numeric" maxlength="2" style="width:100%;text-align:center;font-weight:700;padding:3px 2px" value="'+esc(L.slots[pos])+'" oninput="edSlot(\''+kind+'\','+t+',\''+pos+'\',this.value)">'+
+      '<button style="border:none;background:none;padding:0 2px;font-size:15px" class="'+(marked?'star':'muted')+'" onclick="edStar(\''+kind+'\','+t+',\''+pos+'\')">'+(marked?'★':'☆')+'</button>'+
+      '</div>';}).join('');}).join('');
+  const segs=[['edge','边二传(2号位)'],['mid','中二传(3号位)'],['custom','自定义']].map(function(x){
+    return '<button class="'+(O.preset[t]===x[0]?'on':'')+'" onclick="edPreset(\''+kind+'\','+t+',\''+x[0]+'\')">'+x[1]+'</button>';
+  }).join('');
+  return '<div class="netline"></div><div class="court">'+cells+'</div><div class="seg" style="margin-top:8px">'+segs+'</div>';
+}
+function suPrev(){if(SU.step>1){SU.step--;render();}}
+function suNext(){
+  if(SU.step===1){SU.step=2;render();return;}
+  if(SU.step===2||SU.step===3){
+    const t=SU.step-2;const L=SU.lineups[t];
+    for(const p of ALLPOS){
+      if(!String(L.slots[p]).trim()){toast((t?'蓝队':'红队')+' '+p+'号位还没填号码');return;}
+    }
+    const nums=ALLPOS.map(p=>String(L.slots[p]).trim());
+    if(new Set(nums).size<6)toast('注意：'+(t?'蓝队':'红队')+'存在重复号码');
+    SU.step++;render();return;
+  }
+  startMatch();
+}
+function lineupSummary(t){
+  const L=SU.lineups[t];
+  const cells=GRID.map(function(row){return row.map(function(pos){
+    const marked=isSetterMarked('SU',t,pos);
+    return '<div class="cell '+(FRONTPOS.indexOf(pos)>=0?'front':'back')+'" style="min-height:40px">'+
+      '<span class="pos">'+pos+'号</span>'+
+      '<span class="num" style="font-size:16px">'+esc(L.slots[pos])+(marked?' <span class="tag setter">★</span>':'')+'</span></div>';
+  }).join('');}).join('');
+  return '<div class="card"><b style="color:'+(t?'var(--blue)':'var(--red)')+'">'+esc(SU.teams[t].name)+'</b>'+
+    '<div class="netline"></div><div class="court">'+cells+'</div></div>';
+}
+function renderSetup(){
+  const r=SU.rules;
+  const stepTitles=['赛制','红队阵容','蓝队阵容','开赛确认'];
+  const dots=stepTitles.map(function(s,i){
+    return '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;margin:0 4px;background:'+(i<SU.step?'#3fb950':'#30363d')+'"></span>';
+  }).join('');
+  const head='<div style="text-align:center;margin:6px 0 2px"><b style="font-size:17px">赛前准备 · '+stepTitles[SU.step-1]+'</b>'+
+    '<div style="margin:6px 0 2px">'+dots+'<span class="muted"> '+SU.step+'/4</span></div></div>';
+  let body='';
+  if(SU.step===1){
+    body='<div class="card"><b>赛制</b>'+
+      '<div class="grid3" style="margin-top:10px">'+
+      '<div><div class="muted">每局分</div><input type="number" min="1" value="'+r.points+'" oninput="SU.rules.points=Math.max(1,parseInt(this.value)||25)"></div>'+
+      '<div><div class="muted">局数</div><select onchange="SU.rules.bestOf=parseInt(this.value)">'+
+      '<option value="3"'+(r.bestOf===3?' selected':'')+'>三局两胜</option><option value="5"'+(r.bestOf===5?' selected':'')+'>五局三胜</option><option value="1"'+(r.bestOf===1?' selected':'')+'>单局</option></select></div>'+
+      '<div><div class="muted">决胜局分</div><input type="number" min="1" value="'+r.deciding+'" oninput="SU.rules.deciding=Math.max(1,parseInt(this.value)||15)"></div>'+
+      '</div><div class="muted">每球得分制；需净胜2分</div></div>';
+  }else if(SU.step===2||SU.step===3){
+    const t=SU.step-2;
+    body='<div class="card"><b style="color:'+(t?'var(--blue)':'var(--red)')+'">'+(t?'蓝队':'红队')+'：输入每个位置的队员号码</b>'+
+      '<input style="margin:8px 0" value="'+esc(SU.teams[t].name)+'" oninput="SU.teams['+t+'].name=this.value" placeholder="队伍名称">'+
+      lineupEditor('SU',t)+'</div>';
+  }else{
+    const rulesTxt=r.points+'分 · '+(r.bestOf===3?'三局两胜':r.bestOf===5?'五局三胜':'单局')+(r.bestOf>1?' · 决胜局'+r.deciding+'分':'');
+    body='<div class="card"><b>赛制</b><div class="muted" style="margin-top:4px">'+rulesTxt+' · 每球得分，净胜2分</div></div>'+
+      lineupSummary(0)+lineupSummary(1)+
+      '<div class="card"><b>首局先发球</b><div class="seg" style="margin-top:8px">'+
+      '<button class="'+(SU.first===0?'on':'')+'" onclick="SU.first=0;render()">红队</button>'+
+      '<button class="'+(SU.first===1?'on':'')+'" onclick="SU.first=1;render()">蓝队</button></div>'+
+      '<div class="muted" style="margin-top:6px">每局只有先发球的队第一球从 5 号位开始发球</div></div>';
+  }
+  let nav;
+  if(SU.step===1){
+    nav='<div class="wiznav"><button onclick="suNext()">下一步：红队阵容 →</button></div>';
+  }else if(SU.step===4){
+    nav='<div class="wiznav"><button onclick="suPrev()">← 上一步</button>'+
+      '<button style="background:linear-gradient(180deg,#2ea043,#1a7f37);border-color:#1a7f37" onclick="suNext()">开始比赛</button></div>';
+  }else{
+    nav='<div class="wiznav"><button onclick="suPrev()">← 上一步</button>'+
+      '<button onclick="suNext()">下一步：'+(SU.step===2?'蓝队阵容':'开赛确认')+' →</button></div>';
+  }
+  return head+body+nav+
+    '<div class="legend">边二传=二传开局在2号位；中二传=开局在3号位（点☆可自定义标记二传）。<br>小转规则：每列固定（4↔5、3↔6、2↔1），发完球与本列后排对调。</div>';
+}
+function setsDots(t){return new Array(S.setsWon[t]).fill('●').join('')+new Array(Math.max(0,neededWins()-S.setsWon[t])).fill('○').join('');}
+function bannerHTML(t){
+  const L=S.lineups[t];
+  const parts=[];let anyBack=false;
+  L.setters.forEach(function(n){
+    const pos=ALLPOS.filter(p=>String(L.slots[p])===String(n))[0];
+    if(!pos)return;
+    const front=FRONTPOS.indexOf(pos)>=0;
+    parts.push(esc(n)+(front?'前排（'+pos+'号位）':'后排（'+pos+'号位）'));
+    if(!front)anyBack=true;
+  });
+  const setTxt=parts.length?parts.join('、'):'未标记二传';
+  const backs=['5','6','1'].map(function(p){return esc(String(L.slots[p]));}).join(' ');
+  const warnLine=anyBack?'<div class="warn-line">⚠ 后排二传：前场区内不得高于球网上沿完成进攻性击球（含跳传）、不得参与拦网</div>':'';
+  return '<div class="banner '+(anyBack?'warn':'ok')+'">'+
+    '<div class="big">'+esc(teamName(t))+'二传：'+setTxt+'</div>'+warnLine+
+    '<div class="muted">后排队员：'+backs+'（后排不得在前场区完成高于网的进攻、不得拦网）</div></div>';
+}
+function courtHTML(t){
+  const L=S.lineups[t];
+  // 二传所在列高亮：取第一个在场的二传，绿框=前排，黄框=后排
+  let hlIdx=-1,hlClass='';
+  for(const n of L.setters){
+    const pos=ALLPOS.filter(p=>String(L.slots[p])===String(n))[0];
+    if(pos){hlIdx=GRID[0].indexOf(pos)>=0?GRID[0].indexOf(pos):GRID[1].indexOf(pos);hlClass=FRONTPOS.indexOf(pos)>=0?'hl-front':'hl-back';break;}
+  }
+  const cell=function(pos){
+    const num=String(L.slots[pos]);
+    const front=FRONTPOS.indexOf(pos)>=0;
+    const isSet=L.setters.map(String).indexOf(num)>=0;
+    const isServe=(S.cur.serving===t&&S.cur.serverNum===num&&S.phase==='playing');
+    return '<div class="cell '+(front?'front':'back')+'">'+
+      '<span class="pos">'+pos+'号</span><span class="num">'+esc(num)+'</span>'+
+      '<span class="tags">'+(isSet?'<span class="tag setter">★二传</span>':'')+(isServe?'<span class="tag serve">🏐发球</span>':'')+'</span></div>';
+  };
+  const cols=GRID[0].map(function(posF,i){
+    return '<div class="col'+(i===hlIdx&&hlClass?' '+hlClass:'')+'">'+cell(posF)+cell(GRID[1][i])+'</div>';
+  }).join('');
+  return '<div class="card"><div class="court-title">'+
+    '<b style="color:'+(t?'var(--blue)':'var(--red)')+'">'+esc(S.teams[t].name)+'</b></div>'+
+    '<div class="netline"></div><div class="court">'+cols+'</div></div>';
+}
+function logHTML(){
+  const items=S.matchLog.slice(-40).reverse().map(function(e){
+    return '<div>【第'+e.set+'局 '+e.sc[0]+':'+e.sc[1]+'】'+esc(e.text).replace(/#(\d)/g,'$1')+'</div>';
+  }).join('');
+  return '<div class="card"><b style="font-size:13px">记录（最新在前）</b><div class="log" style="margin-top:6px">'+(items||'—')+'</div></div>';
+}
+function renderPlaying(){
+  const c=S.cur;const tg=targetScore();
+  const hi=Math.max(c.score[0],c.score[1]),lo=Math.min(c.score[0],c.score[1]);
+  let badge='';
+  if(hi>=tg-1&&lo>=tg-1&&c.score[0]!==c.score[1])badge=' <span class="badge deuce">DEUCE·需领先2分</span>';
+  else if(hi>=tg-1){
+    const l=c.score[0]>c.score[1]?0:1;
+    const mp=S.setsWon[l]+1>=neededWins();
+    badge=' <span class="badge setpt">'+(mp?'赛点':'局点')+'</span>';
+  }
+  const serveT=c.serving;
+  const serveTxt=serveT<0?'':'🏐 '+esc(teamName(serveT))+' 发球　'+esc(c.serverNum)+'（'+c.serverPos+'号位）';
+  const head='<div class="card"><div class="score-row">'+
+    '<div style="flex:1;min-width:0"><div class="tname" style="color:var(--red)">'+esc(S.teams[0].name)+'</div><div class="dots">'+setsDots(0)+'</div></div>'+
+    '<div class="score-mid"><div class="score-num">'+c.score[0]+'<span class="muted" style="font-size:20px"> : </span>'+c.score[1]+'</div>'+
+    '<div class="score-sub">第'+S.setNo+'局'+(isDeciding()?'（决胜）':'')+'·目标'+tg+'分'+badge+'</div></div>'+
+    '<div style="flex:1;min-width:0;text-align:right"><div class="tname" style="color:var(--blue)">'+esc(S.teams[1].name)+'</div><div class="dots">'+setsDots(1)+'</div></div></div>'+
+    '<div class="serve-line">'+serveTxt+'</div></div>';
+  const legend='<div class="legend">浅色行=前排（靠网），深色行=后排；🏐=当前发球队员（发球后已换至后排）；虚线框=二传所在列（绿=二传前排，黄=二传后排）。<br>小转：每列固定 4↔5、3↔6、2↔1；只有本局先发球的队第一球从 5 号位开始，此后一律按 2→3→4 号位循环（后发球的队首球即 2 号位）。</div>';
+  const ctl='<div class="ctl">'+
+    '<button onclick="undo()">↩ 撤销</button>'+
+    '<button onclick="openSub(0)">换人·红 ' + c.subs[0]+'</button>'+
+    '<button onclick="openSub(1)">换人·蓝 ' + c.subs[1]+'</button>'+
+    '<button onclick="timeout(0)">暂停·红 '+c.timeouts[0]+'/2</button>'+
+    '<button onclick="timeout(1)">暂停·蓝 '+c.timeouts[1]+'/2</button>'+
+    '<button onclick="openMenu()">⋮ 菜单</button></div>';
+  const sticky='<div class="sticky">'+
+    '<button class="btn-score red" onclick="score(0)">'+esc(S.teams[0].name)+' 得分<span class="sub">'+c.score[0]+' 分</span></button>'+
+    '<button class="btn-score blue" onclick="score(1)">'+esc(S.teams[1].name)+' 得分<span class="sub">'+c.score[1]+' 分</span></button></div>';
+  return head+bannerHTML(0)+bannerHTML(1)+courtHTML(0)+courtHTML(1)+legend+logHTML()+ctl+sticky;
+}
+function renderSub(){
+  const t=subSel.t;const L=S.lineups[t];
+  const slots=GRID.map(function(row){return row.map(function(pos){
+    return '<button class="slotbtn '+(subSel.pos===pos?'sel':'')+'" onclick="pickSlot(\''+pos+'\')">'+pos+'号位<br>'+esc(String(L.slots[pos]))+'</button>';
+  }).join('');}).join('');
+  let body='<div class="grid3" style="margin-top:8px">'+slots+'</div>';
+  if(subSel.pos){
+    body+='<div style="margin-top:12px"><div class="muted">上场队员号码（替换 '+subSel.pos+'号位 现队员 '+esc(String(L.slots[subSel.pos]))+'）</div>'+
+      '<div style="display:flex;gap:8px;margin-top:6px">'+
+      '<input id="subNum" inputmode="numeric" maxlength="2" style="flex:1" placeholder="号码">'+
+      '<button class="slotbtn '+(subSel.star?'sel':'')+'" style="flex:1" onclick="subSel.star=!subSel.star;render()">'+(subSel.star?'★二传':'☆二传')+'</button></div>'+
+      '<div class="grid2" style="margin-top:12px">'+
+      '<button onclick="closeOverlay()">取消</button><button onclick="confirmSub()">确认换人</button></div></div>';
+  }else{
+    body+='<div class="muted" style="margin-top:8px">选择要换人的位置（小转按你们的规程执行，此处仅做记录与提示）</div>';
+  }
+  return overlay('<h3>换人 · '+esc(teamName(t))+'（本局第 '+(S.cur.subs[t]+1)+' 次换人）</h3>'+body,true);
+}
+function renderSetEnd(){
+  if(!SE)SE={lineups:clone(S.initLineup),preset:[guessPreset(0),guessPreset(1)],first:1-S.lastFirst};
+  const w=S.history[S.history.length-1].winner;
+  const editors=[0,1].map(function(t){
+    return '<div class="card" style="margin:8px 0"><b style="color:'+(t?'var(--blue)':'var(--red)')+'">'+esc(S.teams[t].name)+'</b>'+lineupEditor('SE',t)+'</div>';
+  }).join('');
+  return overlay('<h3>第'+S.setNo+'局结束　'+S.cur.score[0]+' : '+S.cur.score[1]+'</h3>'+
+    '<div>胜方 <b style="color:'+(w?'var(--blue)':'var(--red)')+'">'+esc(teamName(w))+'</b>　总局分 '+S.setsWon[0]+' - '+S.setsWon[1]+'</div>'+
+    '<button style="margin:12px 0 4px;width:100%" onclick="undo()">↩ 撤销最后一球（误触时用）</button>'+
+    '<h3 style="margin-top:14px">第'+(S.setNo+1)+'局阵容（双方重新报位）</h3>'+editors+
+    '<div class="muted" style="margin:10px 0 6px">本局先发球'+(isNextDeciding()?'（决胜局，按规程重新挑边）':'')+'</div>'+
+    '<div class="seg">'+
+    '<button class="'+(SE.first===0?'on':'')+'" onclick="SE.first=0;render()">红队</button>'+
+    '<button class="'+(SE.first===1?'on':'')+'" onclick="SE.first=1;render()">蓝队</button></div>'+
+    '<button class="btn-score" style="width:100%;margin-top:14px;background:linear-gradient(180deg,#2ea043,#1a7f37)" onclick="startNextSet()">开始第'+(S.setNo+1)+'局</button>',false);
+}
+function isNextDeciding(){return S.rules.bestOf>1&&(S.setNo+1)===S.rules.bestOf;}
+function renderMatchEnd(){
+  const w=S.setsWon[0]>S.setsWon[1]?0:1;
+  const hist=S.history.map(function(h){return '第'+h.set+'局 '+h.score[0]+':'+h.score[1]+'（'+esc(teamName(h.winner))+'胜）';}).join('<br>');
+  return overlay('<h3>🏆 比赛结束</h3>'+
+    '<div style="font-size:18px;font-weight:800;margin:6px 0">'+esc(S.teams[0].name)+' '+S.setsWon[0]+' - '+S.setsWon[1]+' '+esc(S.teams[1].name)+'</div>'+
+    '<div class="muted" style="margin:8px 0">'+hist+'</div>'+
+    '<div class="grid2"><button onclick="newMatch(true)">新比赛（保留配置）</button><button onclick="newMatch(false)">完全重置</button></div>',false);
+}
+function renderMenu(){
+  return overlay('<h3>菜单</h3>'+
+    '<div class="grid2">'+
+    '<button onclick="modal=\'rules\';render()">规则速记</button>'+
+    '<button onclick="resetMatch()">重置当前比赛</button></div>'+
+    '<div class="muted" style="margin-top:10px">比分与状态自动保存在本机，关闭页面后可继续。<br>意见反馈：对调时机、换人规则等可随时调整。</div>'+
+    '<button style="width:100%;margin-top:10px" onclick="closeOverlay()">关闭</button>',true);
+}
+function renderRules(){
+  return overlay('<h3>小转规则速记（本应用采用的模型）</h3><div style="font-size:13px;line-height:1.9">'+
+    '1. 每列固定：4↔5、3↔6、2↔1，列内两人只在前后排之间对调。<br>'+
+    '2. 每局只有先发球的队：第一球由 5号位 队员发球（已是后排，不对调）。<br>'+
+    '3. 各队每次轮到发球按 2→3→4→2… 号位循环，由当时站在该位置的人发球；发球后立即与本列后排对调、变为后排（后发球的队首球直接是 2号位）。<br>'+
+    '4. 效果：先发球队发球顺序 5→2→3→4→1→6；后发球队 2→3→4→1→6→5。<br>'+
+    '5. 后排队员（1、6、5号位）：前场区内不得完成高于球网上沿的进攻性击球（后排二传跳传高于网也算）、不得参与拦网。<br>'+
+    '6. 预设：边二传=二传开局2号位（后排时在1号位）；中二传=开局3号位（后排时在6号位）。<br>'+
+    '7. 换人仅做记录；每队每局暂停2次。</div>'+
+    '<button style="width:100%;margin-top:12px" onclick="closeOverlay()">关闭</button>',true);
+}
+
+/* ================= 启动 ================= */
+function boot(){
+  let saved=null;
+  try{saved=JSON.parse(localStorage.getItem(LS_KEY));}catch(e){}
+  if(saved&&saved.phase&&saved.cur){S=saved;S.undoStack=[];}
+  else{SU=freshSU();}
+  render();
+}
+boot();
+</script>
+</body>
+</html>
