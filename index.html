@@ -371,7 +371,7 @@ function helpHTML(){
     '<b style="font-size:21px">排球副裁助手</b>'+
     '<div class="muted" style="margin-top:4px">校园「小转」赛制 · 记录交给它，眼睛留给场上</div></div>'+
     '<div class="card"><b>为什么做这个工具</b>'+
-    '<div style="font-size:13px;line-height:1.9;margin-top:6px">做学校排球比赛的副裁判，常常要一个人同时盯住两边的发球轮次、前后排站位和比分，还要留意二传是否转到后排、后排队员有没有进攻或拦网违例——全靠脑子记，很容易看不过来，也容易漏。这个小工具把"记"的活儿接管下来：每球点一下得分按钮，轮次、前后排对调和发球人自动更新，让你把注意力留给场上。</div></div>'+
+    '<div style="font-size:13px;line-height:1.9;margin-top:6px">排球比赛的副裁，常常要一个人同时盯住两边的发球轮次、前后排站位和比分，还要留意二传是否转到后排、后排队员有没有进攻或拦网违例。本工具旨在解放副裁的大脑：每球点一下得分按钮，轮次、前后排对调和发球人自动更新，让裁判能把更多注意力留给场上，让比赛更公平公正。</div></div>'+
     '<div class="card"><b>使用注意事项</b>'+
     '<div style="font-size:13px;line-height:2;margin-top:6px">'+
     '1. <b>辅助不代判</b>：本工具只做记录与提示，判罚始终以裁判的观察和规则为准。<br>'+
@@ -379,7 +379,11 @@ function helpHTML(){
     '3. <b>数据保存在本机浏览器</b>：一场比赛请固定用同一台设备，不要中途清理浏览器缓存或换无痕模式。<br>'+
     '4. <b>误触可撤销</b>：点错比分随时按「撤销」，可连续回退多球。<br>'+
     '5. <b>局间重新报位</b>：每局开始时在弹窗里输入该局双方阵容。<br>'+
-    '6. <b>保持电量与常亮</b>：建议调长手机自动锁屏时间，重要比赛可边充电边用。</div></div>';
+    '6. <b>保持电量与常亮</b>：建议调长手机自动锁屏时间，重要比赛可边充电边用。</div></div>'+
+    '<div class="card" style="font-size:12px;color:var(--dim);line-height:1.9">'+
+    '本工具由南开大学激扬排球社开发，仅用于校内排球赛事辅助。<br>'+
+    '免费开源，源码：<a style="color:#79c0ff;word-break:break-all" href="https://github.com/spencer-ljh/volleyball-ref-assistant" target="_blank" rel="noopener">github.com/spencer-ljh/volleyball-ref-assistant</a><br>'+
+    '© 2026 spencer-ljh · 反馈与建议欢迎+vx：ljhhh_12138</div>';
 }
 function renderSetup(){
   const r=SU.rules;
